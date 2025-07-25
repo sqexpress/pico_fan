@@ -1,0 +1,17 @@
+PARTS:
+- MOTOR: RS385
+- MOTOR DRIVER: DRV8871
+- MICROCONTROLLER: Raspberry pi pico W
+- POWER CONVERTER: Any buck step down converter to power the pico.
+
+Wiring Diagram (Text Description)
+DRV8871
+VIN	+ of motor power supply (6V–12V)	Power input for motor
+GND	Pico GND and motor power GND	Common ground
+OUT1	Motor Terminal 1	One side of RS-385
+OUT2	Motor Terminal 2	Other side of RS-385
+IN1	GPIO 1 (or any PWM-capable pin)	Motor direction/PWM
+IN2	GPIO 0 (or another GPIO)	Motor direction
+GND (on DRV8871)	To GND of Pico and power supply	Again, common ground is critical
+EN/FAULT (if exposed)	Leave unconnected or pull high	Optional on some DRV8871 modules
+
