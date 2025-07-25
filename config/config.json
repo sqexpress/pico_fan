@@ -1,0 +1,16 @@
+{
+    "accessory": "HTTP-LIGHTBULB",
+    "name": "PICO Fan",
+    "onUrl": "http://pico_ip/?direction=forward&power=on",
+    "offUrl": "http://pico_ip/?direction=forward&power=off",
+    "statusUrl": "http://pico_ip/status",
+    "statusPattern": "{\"speed\":([1-9][0-9]?|100),\"direction\":\"(forward|reverse)\",\"enabled\":true}",
+    "brightness": {
+        "setUrl": "http://pico_ip/?speed=%s",
+        "statusUrl": "http://pico_ip/status",
+        "statusPattern": "{\"speed\":([1-9][0-9]?|100),.*",
+        "patternGroupToExtract": 1
+    },
+    "httpMethod": "GET",
+    "sendImmediately": true
+}
