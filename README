@@ -15,3 +15,9 @@ IN2	GPIO 0 (or another GPIO)	Motor direction
 GND (on DRV8871)	To GND of Pico and power supply	Again, common ground is critical
 EN/FAULT (if exposed)	Leave unconnected or pull high	Optional on some DRV8871 modules
 
+ROTARY ENCODER
+CLK	GP2	Rotation (A)
+DT	GP3	Rotation (B)
+SW	GP4	Push button (active LOW)
++	3V3	Power
+GND	GND	Ground
