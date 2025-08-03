@@ -1,4 +1,4 @@
-mport network
+import network
 import socket
 from machine import Pin, PWM, Timer
 import time
@@ -26,15 +26,18 @@ pin_clk = Pin(2, Pin.IN, Pin.PULL_UP)
 pin_dt = Pin(3, Pin.IN, Pin.PULL_UP)
 pin_sw = Pin(4, Pin.IN, Pin.PULL_UP)
 
+# define debounce timer globally to avoid conflicts
+#debounce_timer = Timer()
+
 last_debounce_time = utime.ticks_ms()
-debounce_delay = 200
+debounce_delay = 500
 
 last_encoder_value = (pin_clk.value() << 1) | pin_dt.value()
 accumulator = 0
 ENCODER_STEP_THRESHOLD = 4
 
 # === Fan State ===
-speed = 0.5
+speed = 0.7
 direction = "forward"
 enabled = False
 
@@ -59,35 +62,69 @@ def update_motor():
 
 # === Encoder Polling ===
 def poll_encoder():
-    global speed, last_encoder_value, accumulator
+    global speed, last_encoder_value, accumulator, enabled
     new_value = (pin_clk.value() << 1) | pin_dt.value()
     delta = (last_encoder_value << 2) | new_value
     cw = [0b1101, 0b0100, 0b0010, 0b1011]
     ccw = [0b1110, 0b0111, 0b0001, 0b1000]
+    changed = False
+
     if delta in cw:
         accumulator += 1
     elif delta in ccw:
         accumulator -= 1
+
     if accumulator >= ENCODER_STEP_THRESHOLD:
         speed = min(1.0, speed + 0.05)
-        update_motor()
         accumulator = 0
+        changed = True
     elif accumulator <= -ENCODER_STEP_THRESHOLD:
         speed = max(0.0, speed - 0.05)
-        update_motor()
         accumulator = 0
+        changed = True
+
+    if changed:
+        if enabled:
+            update_motor()
+
     last_encoder_value = new_value
 
 # === Button Interrupt ===
+'''
+button_irq_ready = False
+
 def button_irq(pin):
-    global enabled, last_debounce_time
+    global enabled, last_debounce_time, button_irq_ready
+    print(f'irq triggered')
+
+    if not button_irq_ready:
+        return  # Ignore noise before system ready
+
     now = utime.ticks_ms()
+    print(f'now = {now}, last_debounce_time ={last_debounce_time}') 
     if utime.ticks_diff(now, last_debounce_time) > debounce_delay:
         enabled = not enabled
         update_motor()
         last_debounce_time = now
+'''
+# === Button Polling ===
+button_irq_ready = True
 
-pin_sw.irq(trigger=Pin.IRQ_FALLING, handler=button_irq)
+last_button_state = 1
+button_check_timer = Timer()
+
+def poll_button(t):
+    global enabled, last_button_state, last_debounce_time
+    current = pin_sw.value()
+    now = utime.ticks_ms()
+    if current == 0 and last_button_state == 1:
+        if utime.ticks_diff(now, last_debounce_time) > debounce_delay:
+            enabled = not enabled
+            update_motor()
+            last_debounce_time = now
+    last_button_state = current
+
+button_check_timer.init(freq=20, mode=Timer.PERIODIC, callback=poll_button)
 
 # === Connect to Wi-Fi ===
 def connect_wifi():
@@ -102,8 +139,14 @@ def connect_wifi():
         sys.exit()
     return wlan.ifconfig()[0]
 
+# re-enable IRQ after cleanup
+#pin_sw.irq(trigger=Pin.IRQ_FALLING, handler=button_irq)
 ip = connect_wifi()
-print("Web UI: http://{}/".format(ip))
+print(f'ip = {ip}')
+
+# Allow system to settle before enabling button IRQs
+utime.sleep(2)
+button_irq_ready = True
 
 # === Web Page ===
 def webpage():
